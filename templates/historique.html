@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historique — Fiche Diagnostique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="sheet">
+  <header class="sheet__head">
+    <div class="sheet__eyebrow">Historique</div>
+    <h1 class="sheet__title">Diagnostics précédents</h1>
+    <p class="sheet__sub">Les 50 derniers diagnostics établis, les plus récents en premier.</p>
+    <a href="/" class="nav-link">&larr; Retour au diagnostic</a>
+  </header>
+
+  {% if entries %}
+    <div class="actionrow">
+      <button id="viderBtn" class="btn btn--ghost">Vider l'historique</button>
+    </div>
+
+    {% for e in entries %}
+    <div class="hist-entry">
+      <div class="hist-entry__date">{{ e.date_heure }}</div>
+      <div class="hist-entry__symptomes">Symptômes : {{ e.symptomes | join(", ") }}</div>
+      {% for r in e.resultats %}
+        <div class="hist-entry__result">
+          {{ r.top3[0].maladie }}
+          <span>— {{ r.modele }}{% if r.top3[0].confiance is not none %} ({{ r.top3[0].confiance }}%){% endif %}</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="sheet__sub">Aucun diagnostic enregistré pour le moment.</p>
+  {% endif %}
+</div>
+
+<script>
+document.getElementById("viderBtn")?.addEventListener("click", async () => {
+  if (!confirm("Supprimer tout l'historique ?")) return;
+  await fetch("/historique/vider", { method: "POST" });
+  location.reload();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche Diagnostique — Prédiction de maladie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="sheet">
+  <header class="sheet__head">
+    <div class="sheet__eyebrow">Fiche diagnostique &nbsp;·&nbsp; N° {{ range(1000,9999) | random }} &nbsp;·&nbsp; <a href="/historique" class="backlink">Voir l'historique →</a></div>
+    <h1 class="sheet__title">Décris les symptômes.<br>Compare quatre diagnostics.</h1>
+    <p class="sheet__sub">Sélectionne ce que tu ressens ci-dessous. Quatre modèles indépendants — Random&nbsp;Forest, Decision&nbsp;Tree, Naive&nbsp;Bayes, XGBoost — analysent ta fiche et proposent chacun leur verdict.</p>
+  </header>
+
+  <section class="picker">
+    <div class="picker__bar">
+      <input id="search" type="text" placeholder="Chercher un symptôme… (ex. toux, fièvre, fatigue)" autocomplete="off">
+      <div class="picker__count"><span id="count">0</span> sélectionné(s)</div>
+    </div>
+
+    <div class="picker__grid" id="symptomGrid">
+      {% for s in symptomes %}
+      <button type="button" class="chip" data-value="{{ s }}" data-label="{{ nom_lisible(s) }}">
+        {{ nom_lisible(s) }}
+      </button>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="actionrow">
+    <button id="clearBtn" class="btn btn--ghost">Effacer la sélection</button>
+    <button id="predictBtn" class="btn btn--primary">Établir le diagnostic</button>
+  </div>
+
+  <section id="results" class="results" hidden>
+    <div class="results__label">Verdicts — <span id="resultsCount"></span> symptôme(s) analysé(s)</div>
+    <div id="consensusBadge" class="consensus"></div>
+    <div class="results__row" id="resultsRow"></div>
+    <p class="results__caveat">À titre pédagogique uniquement — ce n'est pas un avis médical. Les quatre modèles sont entraînés sur le même jeu de données restreint.</p>
+  </section>
+
+  <!-- Widget de feedback : confiance (quanti) + commentaire (quali) -->
+  <!-- Correspond exactement aux IDs/classes attendus par script.js -->
+  <section id="feedbackSection" class="feedback" hidden>
+    <p class="feedback__question">Ce résultat vous semble-t-il fiable ?</p>
+    <div class="feedback__stars">
+      <span class="trust-star" data-value="1">☆</span>
+      <span class="trust-star" data-value="2">☆</span>
+      <span class="trust-star" data-value="3">☆</span>
+      <span class="trust-star" data-value="4">☆</span>
+      <span class="trust-star" data-value="5">☆</span>
+    </div>
+    <textarea id="feedbackComment" class="feedback__comment" rows="3" placeholder="Un commentaire ? (optionnel)"></textarea>
+    <button id="feedbackSubmit" class="btn btn--ghost">Envoyer le retour</button>
+    <p id="feedbackMsg" class="feedback__msg" hidden></p>
+  </section>
+
+  <div id="errorBox" class="error" hidden></div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
