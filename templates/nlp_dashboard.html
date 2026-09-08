@@ -67,10 +67,14 @@
             resultTitle.innerText = titles[action];
 
             try {
+                // Découper le texte en phrases pour l'analyse
+                const phrases = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 5);
+                const textes = phrases.length >= 2 ? phrases : [text];
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
+                    body: JSON.stringify({ textes: textes })
                 });
                 
                 if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);

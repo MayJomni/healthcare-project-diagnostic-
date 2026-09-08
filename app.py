@@ -422,6 +422,21 @@ def vider_historique():
 # ROUTES — Analyse NLP (Module 2)
 # =========================================================
 
+import re as _re
+
+def _extraire_textes(data):
+    """Extrait une liste de textes depuis la requête.
+    Accepte 'textes' (liste) ou 'text' (string unique découpé en phrases)."""
+    textes = data.get("textes", [])
+    if not textes:
+        text = data.get("text", "")
+        if text:
+            # Découper en phrases
+            phrases = [s.strip() for s in _re.split(r'[.!?\n]+', text) if len(s.strip()) > 5]
+            textes = phrases if len(phrases) >= 2 else [text]
+    return textes
+
+
 @app.route("/api/nlp/cluster", methods=["POST"])
 def api_nlp_cluster():
     """Clustering semantique de textes."""
@@ -429,11 +444,11 @@ def api_nlp_cluster():
         return jsonify({"error": "Le module NLP n'est pas active."}), 503
 
     data = request.get_json()
-    textes = data.get("textes", [])
+    textes = _extraire_textes(data)
     n_clusters = data.get("n_clusters", 5)
 
     if not textes or len(textes) < 2:
-        return jsonify({"error": "Fournissez au moins 2 textes."}), 400
+        return jsonify({"error": "Fournissez au moins 2 phrases ou textes."}), 400
 
     try:
         resultats = nlp_clusterer.cluster(textes, n_clusters=min(n_clusters, len(textes)))
@@ -449,14 +464,14 @@ def api_nlp_topics():
         return jsonify({"error": "Le module NLP n'est pas active."}), 503
 
     data = request.get_json()
-    textes = data.get("textes", [])
+    textes = _extraire_textes(data)
     n_topics = data.get("n_topics", 5)
 
     if not textes or len(textes) < 2:
-        return jsonify({"error": "Fournissez au moins 2 textes."}), 400
+        return jsonify({"error": "Fournissez au moins 2 phrases ou textes."}), 400
 
     try:
-        resultats = nlp_topic_modeler.extract_topics(textes, n_topics=n_topics)
+        resultats = nlp_topic_modeler.extract_topics(textes, n_topics=min(n_topics, len(textes)))
         return jsonify({"topics": resultats})
     except Exception as e:
         return jsonify({"error": f"Erreur lors de la modelisation thematique : {str(e)}"}), 500
@@ -469,7 +484,7 @@ def api_nlp_keywords():
         return jsonify({"error": "Le module NLP n'est pas active."}), 503
 
     data = request.get_json()
-    textes = data.get("textes", [])
+    textes = _extraire_textes(data)
     top_n = data.get("top_n", 20)
 
     if not textes:
