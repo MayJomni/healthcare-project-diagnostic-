@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse d'écosystèmes — Quadruple hélice</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { font-family: 'IBM Plex Sans', sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Newsreader', serif; }
+        code { font-family: 'IBM Plex Mono', monospace; }
+        button { font-family: 'IBM Plex Sans', sans-serif; padding: 8px 16px; background-color: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background-color: #0d1657; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/">Diagnostic</a>
+        <a href="/dashboard">Tableau de bord</a>
+        <a href="/nlp">Analyse NLP</a>
+        <a href="/pose">Estimation de Pose</a>
+        <a href="/ecosystem" class="active">Écosystèmes</a>
+        <a href="/historique">Historique</a>
+        <a href="/analytics">Analytics</a>
+    </nav>
+
+    <div class="eco-form">
+        <h1>Analyse d'écosystèmes de santé</h1>
+        
+        <textarea id="ecoInput" placeholder="Entrez le nom d'une entreprise ou collez un texte décrivant l'écosystème..."></textarea>
+        
+        <div class="btn-group">
+            <button onclick="analyzeEcosystem()">Analyser (Quadruple Hélice)</button>
+        </div>
+
+        <div id="ecoResults" class="results-panel" style="display: none;">
+            <h2>Résultats de l'analyse</h2>
+            
+            <div class="helix-grid">
+                <div>
+                    <h3>Graphique Radar</h3>
+                    <div style="width: 100%; height: 250px; background: #eee; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #888;">
+                        <span>[Zone du Graphique Radar - Quadruple Hélice]</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3>Classification des acteurs</h3>
+                    <table class="actor-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Acteurs identifiés</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actorTableBody">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div>
+                    <h3>Fréquence des mots-clés</h3>
+                    <div id="keywordFreq" style="padding: 10px; background: white; border: 1px solid #e8e8e8; border-radius: 8px; min-height: 100px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;"></div>
+                </div>
+                
+                <div>
+                    <h3>Matrice des interactions</h3>
+                    <div id="interactionMatrix" style="padding: 10px; background: white; border: 1px solid #e8e8e8; border-radius: 8px; min-height: 100px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeEcosystem() {
+            const text = document.getElementById('ecoInput').value;
+            if (!text) {
+                alert("Veuillez fournir un texte ou un nom à analyser.");
+                return;
+            }
+            
+            const resultPanel = document.getElementById('ecoResults');
+            resultPanel.style.display = 'block';
+            
+            document.getElementById('actorTableBody').innerHTML = '<tr><td colspan="2">Chargement de la classification...</td></tr>';
+            document.getElementById('keywordFreq').innerHTML = 'Chargement des fréquences...';
+            document.getElementById('interactionMatrix').innerHTML = 'Chargement de la matrice...';
+
+            try {
+                const response = await fetch('/api/ecosystem/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: text })
+                });
+                
+                if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
+                
+                const data = await response.json();
+                
+                // Populate Table
+                if (data.actors) {
+                    document.getElementById('actorTableBody').innerHTML = Object.keys(data.actors).map(key => 
+                        `<tr><td><strong>${key}</strong></td><td>${data.actors[key].join(', ')}</td></tr>`
+                    ).join('');
+                } else {
+                    document.getElementById('actorTableBody').innerHTML = '<tr><td colspan="2">Aucun acteur trouvé.</td></tr>';
+                }
+                
+                if (data.keywords) {
+                    document.getElementById('keywordFreq').innerHTML = `<pre style="margin:0;">${JSON.stringify(data.keywords, null, 2)}</pre>`;
+                }
+                
+                if (data.interactions) {
+                    document.getElementById('interactionMatrix').innerHTML = `<pre style="margin:0;">${JSON.stringify(data.interactions, null, 2)}</pre>`;
+                }
+
+            } catch (error) {
+                console.error("Erreur d'analyse:", error);
+                document.getElementById('actorTableBody').innerHTML = `<tr><td colspan="2" style="color:red;">Erreur: ${error.message}</td></tr>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimation de pose — Santé numérique</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { font-family: 'IBM Plex Sans', sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Newsreader', serif; }
+        code { font-family: 'IBM Plex Mono', monospace; }
+        button { font-family: 'IBM Plex Sans', sans-serif; padding: 8px 16px; background-color: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background-color: #0d1657; }
+        .controls { text-align: center; margin-bottom: 20px; gap: 10px; display: flex; justify-content: center; }
+        .video-feed img { width: 100%; display: block; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/">Diagnostic</a>
+        <a href="/dashboard">Tableau de bord</a>
+        <a href="/nlp">Analyse NLP</a>
+        <a href="/pose" class="active">Estimation de Pose</a>
+        <a href="/ecosystem">Écosystèmes</a>
+        <a href="/historique">Historique</a>
+        <a href="/analytics">Analytics</a>
+    </nav>
+
+    <div style="padding: 20px;">
+        <h1 style="text-align: center;">Estimation de Pose en Temps Réel</h1>
+        
+        <div class="controls">
+            <button onclick="startPose()">Démarrer</button>
+            <button onclick="stopPose()">Arrêter</button>
+            <button onclick="analyzePosture()">Analyser posture</button>
+        </div>
+
+        <div class="video-container">
+            <div class="video-feed">
+                <!-- Using placeholder if no real route is running, standard Flask uses url_for -->
+                <img id="videoStream" src="/video_feed" alt="Flux vidéo d'estimation de pose" />
+            </div>
+            
+            <div class="video-sidebar">
+                <h3>Statistiques en direct</h3>
+                
+                <div class="stat-card">
+                    <strong>Score de posture :</strong>
+                    <span id="postureScore">-- / 100</span>
+                </div>
+                
+                <div class="stat-card">
+                    <strong>Compteur d'exercices :</strong>
+                    <span id="exerciseCounter">0</span>
+                </div>
+                
+                <div class="stat-card">
+                    <strong>Alertes :</strong>
+                    <div id="poseAlerts" style="color: #c62828; margin-top: 5px;">Aucune anomalie détectée</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pollInterval = null;
+
+        function startPose() {
+            document.getElementById('videoStream').src = "/video_feed";
+            if (!pollInterval) {
+                pollInterval = setInterval(fetchStats, 1000);
+            }
+        }
+
+        function stopPose() {
+            document.getElementById('videoStream').src = "";
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+        
+        function analyzePosture() {
+            alert("Analyse de la posture déclenchée (en développement)...");
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/pose/status');
+                if(response.ok) {
+                    const data = await response.json();
+                    if(data.posture_score !== undefined) {
+                        document.getElementById('postureScore').innerText = data.posture_score + ' / 100';
+                    }
+                    if(data.exercise_count !== undefined) {
+                        document.getElementById('exerciseCounter').innerText = data.exercise_count;
+                    }
+                    if(data.alerts) {
+                        document.getElementById('poseAlerts').innerText = data.alerts.length > 0 ? data.alerts.join(', ') : 'Aucune anomalie détectée';
+                    }
+                }
+            } catch (error) {
+                console.error("Impossible de récupérer les statistiques de pose.", error);
+            }
+        }
+        
+        // Start polling on load
+        pollInterval = setInterval(fetchStats, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Diagnostic — Tableau de bord</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { font-family: 'IBM Plex Sans', sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Newsreader', serif; }
+        code { font-family: 'IBM Plex Mono', monospace; }
+        .disclaimer { text-align: center; font-size: 12px; color: #888; padding: 20px; margin-top: 40px; border-top: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="active">Diagnostic</a>
+        <a href="/dashboard">Tableau de bord</a>
+        <a href="/nlp">Analyse NLP</a>
+        <a href="/pose">Estimation de Pose</a>
+        <a href="/ecosystem">Écosystèmes</a>
+        <a href="/historique">Historique</a>
+        <a href="/analytics">Analytics</a>
+    </nav>
+
+    <div style="padding: 40px 20px;">
+        <h1 style="text-align: center; margin-bottom: 40px;">Tableau de bord</h1>
+        
+        <div class="dashboard-grid">
+            <a href="/" class="dashboard-card">
+                <h2>🩺 Diagnostic</h2>
+                <p>4 modèles ML + LLM</p>
+            </a>
+            
+            <a href="/nlp" class="dashboard-card">
+                <h2>📊 Analyse NLP</h2>
+                <p>Clustering, topics, mots-clés</p>
+            </a>
+            
+            <a href="/pose" class="dashboard-card">
+                <h2>🏃 Estimation de Pose</h2>
+                <p>Détection posturale temps réel</p>
+            </a>
+            
+            <a href="/ecosystem" class="dashboard-card">
+                <h2>🌐 Écosystèmes</h2>
+                <p>Analyse quadruple hélice</p>
+            </a>
+        </div>
+    </div>
+
+    <footer class="disclaimer">
+        <p>Avertissement: Cet outil est une aide au diagnostic. Ne remplace pas l'avis d'un professionnel de santé.</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse NLP — Santé numérique</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { font-family: 'IBM Plex Sans', sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Newsreader', serif; }
+        code { font-family: 'IBM Plex Mono', monospace; }
+        button { font-family: 'IBM Plex Sans', sans-serif; padding: 8px 16px; background-color: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background-color: #0d1657; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/">Diagnostic</a>
+        <a href="/dashboard">Tableau de bord</a>
+        <a href="/nlp" class="active">Analyse NLP</a>
+        <a href="/pose">Estimation de Pose</a>
+        <a href="/ecosystem">Écosystèmes</a>
+        <a href="/historique">Historique</a>
+        <a href="/analytics">Analytics</a>
+    </nav>
+
+    <div class="nlp-form">
+        <h1>Analyse NLP de textes médicaux</h1>
+        
+        <textarea id="nlpInput" placeholder="Collez le texte à analyser ici..."></textarea>
+        
+        <div class="btn-group">
+            <button onclick="analyzeNLP('cluster')">Clustering sémantique</button>
+            <button onclick="analyzeNLP('topics')">Modélisation thématique</button>
+            <button onclick="analyzeNLP('keywords')">Mots-clés</button>
+        </div>
+
+        <div id="nlpResults" class="results-panel" style="display: none;">
+            <h2 id="resultTitle">Résultats</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeNLP(action) {
+            const text = document.getElementById('nlpInput').value;
+            if (!text) {
+                alert("Veuillez entrer du texte à analyser.");
+                return;
+            }
+            
+            const resultPanel = document.getElementById('nlpResults');
+            const resultContent = document.getElementById('resultContent');
+            const resultTitle = document.getElementById('resultTitle');
+            
+            resultPanel.style.display = 'block';
+            resultContent.innerHTML = '<p>Analyse en cours...</p>';
+            
+            let url = `/api/nlp/${action}`;
+            
+            const titles = {
+                'cluster': 'Clustering sémantique',
+                'topics': 'Modélisation thématique',
+                'keywords': 'Extraction de mots-clés'
+            };
+            resultTitle.innerText = titles[action];
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
+                
+                const data = await response.json();
+                resultContent.innerHTML = `<pre><code>${JSON.stringify(data, null, 2)}</code></pre>`;
+            } catch (error) {
+                resultContent.innerHTML = `<p style="color:#d32f2f;">Erreur lors de l'analyse : ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
