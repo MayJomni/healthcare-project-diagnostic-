@@ -7,14 +7,48 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        body { font-family: 'IBM Plex Sans', sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; }
-        h1, h2, h3, h4, h5, h6 { font-family: 'Newsreader', serif; }
-        code { font-family: 'IBM Plex Mono', monospace; }
-        button { font-family: 'IBM Plex Sans', sans-serif; padding: 8px 16px; background-color: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
-        button:hover { background-color: #0d1657; }
+        body { font-family: 'IBM Plex Sans', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #f0f4ff 0%, #e8edf5 100%); }
+        h1, h2, h3 { font-family: 'Newsreader', serif; }
+
+        .topic-card { background: #fff; border: 1px solid #e8ecf4; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
+        .topic-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+        .topic-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .topic-badge { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+        .topic-title { font-weight: 600; font-size: 16px; color: #1a1a2e; }
+
+        .keyword-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+        .keyword-name { width: 140px; font-size: 13px; text-align: right; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .keyword-fill { height: 24px; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: #fff; font-weight: 600; min-width: 30px; transition: width 0.5s ease; }
+        .keyword-score { font-size: 12px; color: #9ca3af; font-family: 'IBM Plex Mono', monospace; width: 50px; }
+
+        .cluster-card { background: #fff; border: 1px solid #e8ecf4; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
+        .cluster-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .cluster-badge { background: linear-gradient(135deg, #5c6bc0, #3949ab); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .cluster-centroid { font-style: italic; color: #5c6bc0; font-size: 14px; font-weight: 500; }
+        .cluster-text { padding: 8px 14px; margin: 6px 0; background: #f8fafc; border-left: 3px solid #c5cae9; border-radius: 0 8px 8px 0; font-size: 13px; color: #374151; }
+
+        .cooc-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .cooc-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: #eef0ff; font-size: 13px; color: #303f9f; border: 1px solid #c5cae9; }
+        .cooc-arrow { color: #9ca3af; font-weight: 700; }
+
+        .tfidf-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        .tfidf-table th { text-align: left; padding: 10px 14px; background: #f0f4ff; color: #374151; font-weight: 600; font-size: 13px; border-bottom: 2px solid #e8ecf4; }
+        .tfidf-table td { padding: 8px 14px; border-bottom: 1px solid #f1f3f9; font-size: 14px; }
+        .tfidf-rank { color: #5c6bc0; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+        .tfidf-bar-cell { width: 40%; }
+        .tfidf-bar { height: 20px; border-radius: 4px; background: linear-gradient(135deg, #5c6bc0, #7986cb); }
+
+        .summary-box { background: linear-gradient(135deg, #eef0ff, #e8edf5); border: 1px solid #c5cae9; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; font-size: 14px; color: #303f9f; }
+        .summary-box strong { color: #1a1a2e; }
+
+        .loading { text-align: center; padding: 40px; color: #5c6bc0; font-size: 16px; }
+        .loading::after { content: ''; display: inline-block; width: 20px; height: 20px; border: 3px solid #c5cae9; border-top-color: #5c6bc0; border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 10px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .topic-colors { --c0: #5c6bc0; --c1: #26a69a; --c2: #ef5350; --c3: #ffa726; --c4: #ab47bc; }
     </style>
 </head>
-<body>
+<body class="topic-colors">
     <nav class="navbar">
         <a href="/">Diagnostic</a>
         <a href="/dashboard">Tableau de bord</a>
@@ -28,12 +62,12 @@
     <div class="nlp-form">
         <h1>Analyse NLP de textes médicaux</h1>
         
-        <textarea id="nlpInput" placeholder="Collez le texte à analyser ici..."></textarea>
+        <textarea id="nlpInput" placeholder="Collez le texte médical à analyser ici..."></textarea>
         
         <div class="btn-group">
-            <button onclick="analyzeNLP('cluster')">Clustering sémantique</button>
-            <button onclick="analyzeNLP('topics')">Modélisation thématique</button>
-            <button onclick="analyzeNLP('keywords')">Mots-clés</button>
+            <button class="btn btn--primary" onclick="analyzeNLP('keywords')">🔑 Mots-clés</button>
+            <button class="btn btn--primary" onclick="analyzeNLP('topics')">📋 Modélisation thématique</button>
+            <button class="btn btn--primary" onclick="analyzeNLP('cluster')">🔗 Clustering sémantique</button>
         </div>
 
         <div id="nlpResults" class="results-panel" style="display: none;">
@@ -43,47 +77,163 @@
     </div>
 
     <script>
+        const TOPIC_COLORS = ['#5c6bc0', '#26a69a', '#ef5350', '#ffa726', '#ab47bc', '#42a5f5', '#66bb6a', '#ec407a'];
+
         async function analyzeNLP(action) {
             const text = document.getElementById('nlpInput').value;
             if (!text) {
                 alert("Veuillez entrer du texte à analyser.");
                 return;
             }
-            
+
             const resultPanel = document.getElementById('nlpResults');
             const resultContent = document.getElementById('resultContent');
             const resultTitle = document.getElementById('resultTitle');
-            
+
             resultPanel.style.display = 'block';
-            resultContent.innerHTML = '<p>Analyse en cours...</p>';
-            
-            let url = `/api/nlp/${action}`;
-            
+
             const titles = {
-                'cluster': 'Clustering sémantique',
-                'topics': 'Modélisation thématique',
-                'keywords': 'Extraction de mots-clés'
+                'cluster': '🔗 Clustering sémantique',
+                'topics': '📋 Modélisation thématique',
+                'keywords': '🔑 Extraction de mots-clés'
             };
             resultTitle.innerText = titles[action];
+            resultContent.innerHTML = '<div class="loading">Analyse en cours</div>';
+
+            const phrases = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 5);
+            const textes = phrases.length >= 2 ? phrases : [text];
 
             try {
-                // Découper le texte en phrases pour l'analyse
-                const phrases = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 5);
-                const textes = phrases.length >= 2 ? phrases : [text];
-
-                const response = await fetch(url, {
+                const response = await fetch(`/api/nlp/${action}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ textes: textes })
                 });
-                
-                if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
-                
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || `Erreur HTTP: ${response.status}`);
+                }
+
                 const data = await response.json();
-                resultContent.innerHTML = `<pre><code>${JSON.stringify(data, null, 2)}</code></pre>`;
+
+                if (action === 'keywords') renderKeywords(data, resultContent);
+                else if (action === 'topics') renderTopics(data, resultContent);
+                else if (action === 'cluster') renderClusters(data, resultContent);
+
             } catch (error) {
-                resultContent.innerHTML = `<p style="color:#d32f2f;">Erreur lors de l'analyse : ${error.message}</p>`;
+                resultContent.innerHTML = `<div class="error">❌ ${error.message}</div>`;
             }
+        }
+
+        // ============ MOTS-CLÉS ============
+        function renderKeywords(data, container) {
+            let html = '';
+
+            // TF-IDF
+            if (data.mots_cles_tfidf && data.mots_cles_tfidf.length > 0) {
+                const maxScore = data.mots_cles_tfidf[0].score_tfidf;
+                html += `<div class="summary-box">📊 <strong>${data.mots_cles_tfidf.length} mots-clés</strong> extraits par TF-IDF — les termes les plus discriminants du texte médical.</div>`;
+                html += '<table class="tfidf-table"><thead><tr><th>#</th><th>Mot-clé</th><th>Pertinence</th><th></th></tr></thead><tbody>';
+                data.mots_cles_tfidf.forEach((kw, i) => {
+                    const pct = (kw.score_tfidf / maxScore * 100).toFixed(0);
+                    html += `<tr>
+                        <td class="tfidf-rank">${i + 1}</td>
+                        <td><strong>${kw.mot_cle}</strong></td>
+                        <td class="tfidf-bar-cell"><div class="tfidf-bar" style="width: ${pct}%"></div></td>
+                        <td style="font-family:'IBM Plex Mono';font-size:12px;color:#9ca3af;">${(kw.score_tfidf * 100).toFixed(1)}%</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+            }
+
+            // Co-occurrences
+            if (data.cooccurrence && data.cooccurrence.connexions) {
+                html += `<h3 style="margin-top:28px;">🔗 Relations entre mots (co-occurrences)</h3>`;
+                html += `<div class="summary-box">Les mots qui apparaissent ensemble dans les mêmes phrases — <strong>${data.cooccurrence.connexions.length} connexions</strong> détectées.</div>`;
+                html += '<div class="cooc-grid">';
+                data.cooccurrence.connexions.forEach(c => {
+                    html += `<div class="cooc-chip"><strong>${c.mot1}</strong> <span class="cooc-arrow">↔</span> <strong>${c.mot2}</strong></div>`;
+                });
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ============ TOPICS ============
+        function renderTopics(data, container) {
+            if (!data.topics || data.topics.length === 0) {
+                container.innerHTML = '<p>Aucun sujet détecté.</p>';
+                return;
+            }
+
+            const topicLabels = [
+                'Suivi & prescription', 'Vaccination & prévention', 'Symptômes & diagnostic',
+                'Traitement & pathologies', 'Hospitalisation', 'Thème 6', 'Thème 7', 'Thème 8'
+            ];
+
+            let html = `<div class="summary-box">📋 <strong>${data.topics.length} thèmes</strong> extraits par LDA (Latent Dirichlet Allocation) — chaque thème regroupe les mots-clés qui apparaissent souvent ensemble.</div>`;
+
+            data.topics.forEach((topic, idx) => {
+                const color = TOPIC_COLORS[idx % TOPIC_COLORS.length];
+                const maxWeight = Math.max(...topic.poids);
+                const topWords = topic.mots_cles.slice(0, 6);
+                const topWeights = topic.poids.slice(0, 6);
+
+                html += `<div class="topic-card">
+                    <div class="topic-header">
+                        <div class="topic-badge" style="background:${color};">${idx + 1}</div>
+                        <div>
+                            <div class="topic-title">Thème ${idx + 1}</div>
+                            <div style="font-size:12px;color:#9ca3af;">Top mots : ${topWords.join(', ')}</div>
+                        </div>
+                    </div>`;
+
+                topWords.forEach((word, j) => {
+                    const pct = (topWeights[j] / maxWeight * 100).toFixed(0);
+                    html += `<div class="keyword-bar">
+                        <div class="keyword-name">${word}</div>
+                        <div class="keyword-fill" style="width:${pct}%;background:${color};">${pct}%</div>
+                        <div class="keyword-score">${topWeights[j].toFixed(2)}</div>
+                    </div>`;
+                });
+
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+        }
+
+        // ============ CLUSTERS ============
+        function renderClusters(data, container) {
+            if (!data.clusters || data.clusters.length === 0) {
+                container.innerHTML = '<p>Aucun cluster détecté.</p>';
+                return;
+            }
+
+            let totalTexts = 0;
+            data.clusters.forEach(c => totalTexts += c.texts.length);
+
+            let html = `<div class="summary-box">🔗 <strong>${data.clusters.length} groupes sémantiques</strong> détectés parmi ${totalTexts} phrases — les phrases similaires sont regroupées automatiquement.</div>`;
+
+            data.clusters.forEach((cluster, idx) => {
+                const color = TOPIC_COLORS[idx % TOPIC_COLORS.length];
+                html += `<div class="cluster-card">
+                    <div class="cluster-header">
+                        <span class="cluster-badge" style="background:${color};">Groupe ${idx + 1}</span>
+                        <span style="font-size:13px;color:#9ca3af;">${cluster.texts.length} phrase(s)</span>
+                    </div>
+                    <div class="cluster-centroid">💡 Phrase représentative : "${cluster.centroid_text}"</div>`;
+
+                cluster.texts.forEach(t => {
+                    html += `<div class="cluster-text">${t}</div>`;
+                });
+
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
         }
     </script>
 </body>
