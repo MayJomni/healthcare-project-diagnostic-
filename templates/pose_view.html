@@ -3,17 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estimation de pose — Santé numérique</title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:wght@400;600&display=swap" rel="stylesheet">
+    <title>Estimation de Pose — Santé numérique</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        body { font-family: 'IBM Plex Sans', sans-serif; margin: 0; padding: 0; background-color: #f5f6fa; }
-        h1, h2, h3, h4, h5, h6 { font-family: 'Newsreader', serif; }
-        code { font-family: 'IBM Plex Mono', monospace; }
-        button { font-family: 'IBM Plex Sans', sans-serif; padding: 8px 16px; background-color: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
-        button:hover { background-color: #0d1657; }
-        .controls { text-align: center; margin-bottom: 20px; gap: 10px; display: flex; justify-content: center; }
-        .video-feed img { width: 100%; display: block; }
+        .pose-layout { display: flex; gap: 24px; max-width: 1100px; margin: 32px auto; padding: 0 24px; }
+        .pose-video { flex: 2; }
+        .pose-video img { width: 100%; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: block; }
+        .pose-sidebar { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+
+        .stat-card { background: #fff; border: 1px solid #e8ecf4; border-radius: 14px; padding: 18px; }
+        .stat-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #9ca3af; margin-bottom: 8px; }
+        .stat-value { font-family: 'Newsreader', serif; font-size: 32px; font-weight: 600; color: #1a1a2e; }
+        .stat-value.good { color: #059669; }
+        .stat-value.warning { color: #d97706; }
+        .stat-value.danger { color: #dc2626; }
+        .stat-sub { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+        .score-bar { height: 8px; border-radius: 4px; background: #e8ecf4; margin-top: 10px; overflow: hidden; }
+        .score-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease, background 0.5s ease; }
+
+        .alert-card { background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 1px solid #fca5a5; }
+        .alert-card.safe { background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-color: #6ee7b7; }
+        .alert-text { font-size: 14px; font-weight: 600; }
+        .alert-text.danger { color: #dc2626; }
+        .alert-text.safe { color: #059669; }
+
+        .problem-item { padding: 6px 0; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        .problem-item:last-child { border-bottom: none; }
+
+        .pose-header { text-align: center; max-width: 1100px; margin: 32px auto 0; padding: 0 24px; }
+        .pose-header h1 { font-family: 'Newsreader', serif; font-size: 32px; background: linear-gradient(135deg, #1a1a2e, #302b63); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .pose-controls { display: flex; justify-content: center; gap: 12px; margin: 20px 0; }
+
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+        .status-dot.on { background: #059669; box-shadow: 0 0 6px #059669; }
+        .status-dot.off { background: #9ca3af; }
+
+        .placeholder-video { width: 100%; aspect-ratio: 4/3; background: #1a1a2e; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 16px; }
+
+        @media (max-width: 768px) { .pose-layout { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -27,86 +57,167 @@
         <a href="/analytics">Analytics</a>
     </nav>
 
-    <div style="padding: 20px;">
-        <h1 style="text-align: center;">Estimation de Pose en Temps Réel</h1>
-        
-        <div class="controls">
-            <button onclick="startPose()">Démarrer</button>
-            <button onclick="stopPose()">Arrêter</button>
-            <button onclick="analyzePosture()">Analyser posture</button>
+    <div class="pose-header">
+        <h1>🏃 Estimation de Pose en Temps Réel</h1>
+        <div class="pose-controls">
+            <button class="btn btn--primary" onclick="startStream()">▶ Démarrer</button>
+            <button class="btn btn--ghost" onclick="stopStream()">⏹ Arrêter</button>
+        </div>
+    </div>
+
+    <div class="pose-layout">
+        <div class="pose-video">
+            <div id="videoPlaceholder" class="placeholder-video">
+                <span>Cliquez <strong>Démarrer</strong> pour activer la webcam</span>
+            </div>
+            <img id="videoFeed" src="" alt="Flux vidéo" style="display:none;">
         </div>
 
-        <div class="video-container">
-            <div class="video-feed">
-                <!-- Using placeholder if no real route is running, standard Flask uses url_for -->
-                <img id="videoStream" src="/video_feed" alt="Flux vidéo d'estimation de pose" />
+        <div class="pose-sidebar">
+            <div class="stat-card">
+                <div class="stat-label"><span id="statusDot" class="status-dot off"></span>Statut</div>
+                <div id="statusText" style="font-size:14px;font-weight:600;color:#9ca3af;">En attente</div>
             </div>
-            
-            <div class="video-sidebar">
-                <h3>Statistiques en direct</h3>
-                
-                <div class="stat-card">
-                    <strong>Score de posture :</strong>
-                    <span id="postureScore">-- / 100</span>
-                </div>
-                
-                <div class="stat-card">
-                    <strong>Compteur d'exercices :</strong>
-                    <span id="exerciseCounter">0</span>
-                </div>
-                
-                <div class="stat-card">
-                    <strong>Alertes :</strong>
-                    <div id="poseAlerts" style="color: #c62828; margin-top: 5px;">Aucune anomalie détectée</div>
-                </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Score de posture</div>
+                <div id="scoreValue" class="stat-value">--</div>
+                <div class="stat-sub">sur 100</div>
+                <div class="score-bar"><div id="scoreFill" class="score-fill" style="width:0%;background:#e8ecf4;"></div></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Points détectés</div>
+                <div id="pointsValue" class="stat-value" style="font-size:24px;">--</div>
+                <div id="confianceText" class="stat-sub">Confiance : --</div>
+            </div>
+
+            <div id="alertCard" class="stat-card alert-card safe">
+                <div class="stat-label">Alertes</div>
+                <div id="alertText" class="alert-text safe">✅ Aucune anomalie détectée</div>
+            </div>
+
+            <div id="problemsCard" class="stat-card" style="display:none;">
+                <div class="stat-label">Problèmes détectés</div>
+                <div id="problemsList"></div>
+            </div>
+
+            <div id="recoCard" class="stat-card" style="display:none;">
+                <div class="stat-label">Recommandations</div>
+                <div id="recoList"></div>
             </div>
         </div>
     </div>
 
     <script>
-        let pollInterval = null;
+        let polling = null;
 
-        function startPose() {
-            document.getElementById('videoStream').src = "/video_feed";
-            if (!pollInterval) {
-                pollInterval = setInterval(fetchStats, 1000);
-            }
+        function startStream() {
+            const feed = document.getElementById('videoFeed');
+            const placeholder = document.getElementById('videoPlaceholder');
+            feed.src = '/video_feed?' + Date.now();
+            feed.style.display = 'block';
+            placeholder.style.display = 'none';
+
+            document.getElementById('statusDot').className = 'status-dot on';
+            document.getElementById('statusText').textContent = 'Caméra active';
+            document.getElementById('statusText').style.color = '#059669';
+
+            // Polling des stats toutes les secondes
+            if (polling) clearInterval(polling);
+            polling = setInterval(fetchStats, 1000);
         }
 
-        function stopPose() {
-            document.getElementById('videoStream').src = "";
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-        }
-        
-        function analyzePosture() {
-            alert("Analyse de la posture déclenchée (en développement)...");
+        function stopStream() {
+            const feed = document.getElementById('videoFeed');
+            const placeholder = document.getElementById('videoPlaceholder');
+            feed.src = '';
+            feed.style.display = 'none';
+            placeholder.style.display = 'flex';
+
+            document.getElementById('statusDot').className = 'status-dot off';
+            document.getElementById('statusText').textContent = 'En attente';
+            document.getElementById('statusText').style.color = '#9ca3af';
+
+            if (polling) { clearInterval(polling); polling = null; }
+
+            // Reset stats
+            document.getElementById('scoreValue').textContent = '--';
+            document.getElementById('scoreValue').className = 'stat-value';
+            document.getElementById('scoreFill').style.width = '0%';
+            document.getElementById('pointsValue').textContent = '--';
+            document.getElementById('confianceText').textContent = 'Confiance : --';
         }
 
         async function fetchStats() {
             try {
-                const response = await fetch('/api/pose/status');
-                if(response.ok) {
-                    const data = await response.json();
-                    if(data.posture_score !== undefined) {
-                        document.getElementById('postureScore').innerText = data.posture_score + ' / 100';
+                const res = await fetch('/api/pose/status');
+                if (!res.ok) return;
+                const d = await res.json();
+
+                // Score
+                const score = d.posture_score;
+                const scoreEl = document.getElementById('scoreValue');
+                const fillEl = document.getElementById('scoreFill');
+
+                if (score !== null && score !== undefined) {
+                    scoreEl.textContent = score;
+                    fillEl.style.width = score + '%';
+                    if (score >= 70) {
+                        scoreEl.className = 'stat-value good';
+                        fillEl.style.background = '#059669';
+                    } else if (score >= 40) {
+                        scoreEl.className = 'stat-value warning';
+                        fillEl.style.background = '#d97706';
+                    } else {
+                        scoreEl.className = 'stat-value danger';
+                        fillEl.style.background = '#dc2626';
                     }
-                    if(data.exercise_count !== undefined) {
-                        document.getElementById('exerciseCounter').innerText = data.exercise_count;
-                    }
-                    if(data.alerts) {
-                        document.getElementById('poseAlerts').innerText = data.alerts.length > 0 ? data.alerts.join(', ') : 'Aucune anomalie détectée';
-                    }
+                } else {
+                    scoreEl.textContent = '--';
+                    scoreEl.className = 'stat-value';
+                    fillEl.style.width = '0%';
                 }
-            } catch (error) {
-                console.error("Impossible de récupérer les statistiques de pose.", error);
-            }
+
+                // Points
+                document.getElementById('pointsValue').textContent = d.nb_points || '--';
+                document.getElementById('confianceText').textContent = 'Confiance : ' + ((d.confiance * 100).toFixed(0)) + '%';
+
+                // Alerte
+                const alertCard = document.getElementById('alertCard');
+                const alertText = document.getElementById('alertText');
+                if (d.risque_chute) {
+                    alertCard.className = 'stat-card alert-card';
+                    alertText.className = 'alert-text danger';
+                    alertText.textContent = '⚠️ ' + (d.alerte || 'Risque de chute détecté');
+                } else {
+                    alertCard.className = 'stat-card alert-card safe';
+                    alertText.className = 'alert-text safe';
+                    alertText.textContent = '✅ Aucune anomalie détectée';
+                }
+
+                // Problèmes
+                const probCard = document.getElementById('problemsCard');
+                const probList = document.getElementById('problemsList');
+                if (d.problemes && d.problemes.length > 0) {
+                    probCard.style.display = 'block';
+                    probList.innerHTML = d.problemes.map(p => `<div class="problem-item">⚠ ${p}</div>`).join('');
+                } else {
+                    probCard.style.display = 'none';
+                }
+
+                // Recommandations
+                const recoCard = document.getElementById('recoCard');
+                const recoList = document.getElementById('recoList');
+                if (d.recommandations && d.recommandations.length > 0) {
+                    recoCard.style.display = 'block';
+                    recoList.innerHTML = d.recommandations.map(r => `<div class="problem-item">💡 ${r}</div>`).join('');
+                } else {
+                    recoCard.style.display = 'none';
+                }
+
+            } catch (e) { /* silencieux */ }
         }
-        
-        // Start polling on load
-        pollInterval = setInterval(fetchStats, 1000);
     </script>
 </body>
 </html>

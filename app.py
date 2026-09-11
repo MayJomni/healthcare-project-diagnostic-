@@ -574,14 +574,22 @@ def video_feed():
 
 @app.route("/api/pose/status")
 def api_pose_status():
-    """Statut de l'estimation de pose."""
+    """Statut temps reel de l'estimation de pose."""
     if not pose_detector or not health_analyzer:
         return jsonify({"error": "Le module d'estimation de pose n'est pas active."}), 503
 
+    from pose_estimation.video_stream import latest_pose_stats
     return jsonify({
         "module_actif": True,
         "backend": "mediapipe",
-        "message": "Le module de pose est pret. Utilisez /video_feed pour le flux video.",
+        "posture_score": latest_pose_stats.get("posture_score"),
+        "problemes": latest_pose_stats.get("problemes", []),
+        "recommandations": latest_pose_stats.get("recommandations", []),
+        "risque_chute": latest_pose_stats.get("risque_chute", False),
+        "alerte": latest_pose_stats.get("alerte", ""),
+        "nb_points": latest_pose_stats.get("nb_points", 0),
+        "confiance": latest_pose_stats.get("confiance", 0.0),
+        "flux_actif": latest_pose_stats.get("actif", False),
     })
 
 
